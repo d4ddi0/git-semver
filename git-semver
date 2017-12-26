@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+"""
+git_semver is conceived as an alternative to git describe, which instead of 
+describing a revision in terms of distance from the last release, parses
+the commit headers to determine what the NEXT release will be, following
+the rules of Semantic Versioning (see https://semver.org/)
+"""
+
+import logging
+import re
+import subprocess
+
+COMMIT_TYPE_IGNORE = 0
+COMMIT_TYPE_PATCH = 1
+COMMIT_TYPE_MINOR = 2
+COMMIT_TYPE_MAJOR = 3
+
+COMMIT_NAMES_IGNORE = ('ignore', 'docs', 'style', 'test', 'chore')
+COMMIT_NAMES_PATCH = ('patch', 'fix', 'dep', 'refactor')
+COMMIT_NAMES_MINOR = ('minor', 'feature')
+COMMIT_NAMES_MAJOR = ('major', 'apichange')
+
+def git_semver_check_message(msg):
+    match = re.match('([a-z]+)(\([a-z]+\))?: ', msg)
+    if match is None:
+        raise Exception('invalid commit header format: "' + msg + '"')
+    commit_type = match.group(1)
+    if commit_type in COMMIT_NAMES_MAJOR:
+        return COMMIT_TYPE_MAJOR
+    elif commit_type in COMMIT_NAMES_MINOR:
+        return COMMIT_TYPE_MINOR
+    elif commit_type in COMMIT_NAMES_PATCH:
+        return COMMIT_TYPE_PATCH
+    elif commit_type in COMMIT_NAMES_IGNORE:
+        return COMMIT_TYPE_IGNORE
+    else:
+        print msg, match.group(1)
+        raise Exception('invalid commit type: ' + commit_type)
+
+def git_semver(commit, release, prefix=''):
+    git_desc = subprocess.check_output(['git', 'describe', commit])
+    match = re.match('(debian/(\d+).(\d+).(\d+))(-\d+-g([a-f0-9]+))?', git_desc)
+    last_tag, major, minor, patch, _, commit = match.groups()
+    log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
+
+    version_bump = 0
+    for msg in subprocess.check_output(log_cmd).splitlines():
+        try:
+            version_bump = max(version_bump, git_semver_check_message(msg))
+        except Exception as e:
+            logging.warn(e.message + ': skipped invalid commit')
+
+    if version_bump == COMMIT_TYPE_PATCH:
+        patch = int(patch) + 1
+    elif version_bump == COMMIT_TYPE_MINOR:
+        patch = 0
+        minor = int(minor) + 1
+    elif version_bump == COMMIT_TYPE_MAJOR:
+        patch = 0
+        minor = 0
+        major = int(major) + 1
+    else: # COMMIT_TYPE_IGNORE
+        pass
+
+    if release:
+        return '{}.{}.{}'.format(major, minor, patch)
+
+    return '{}.{}.{}-{}'.format(major, minor, patch, commit)
+
+
+if __name__ == '__main__':
+    print(git_semver('HEAD', True, prefix='debian/'))
+
