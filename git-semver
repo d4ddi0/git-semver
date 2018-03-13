@@ -39,8 +39,8 @@ def git_semver_check_message(msg):
 
 def git_semver(commit, release, prefix=''):
     git_desc = subprocess.check_output(['git', 'describe', commit])
-    match = re.match('(debian/(\d+).(\d+).(\d+))(-\d+-g([a-f0-9]+))?', git_desc)
-    last_tag, major, minor, patch, _, commit = match.groups()
+    match = re.match('(debian/(\d+).(\d+).(\d+))(-(\d+-g[a-f0-9]+))?', git_desc)
+    last_tag, major, minor, patch, _, short_commit = match.groups()
     log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
 
     version_bump = 0
@@ -63,10 +63,13 @@ def git_semver(commit, release, prefix=''):
         pass
 
     if release:
-        return '{}.{}.{}'.format(major, minor, patch)
+        suffix = ''
+    elif version_bump:
+        suffix = '-~pre_' + short_commit.replace('-','_')
+    else:
+        suffix = '-' + short_commit.replace('-','_')
 
-    return '{}.{}.{}-{}'.format(major, minor, patch, commit)
-
+    return '{}.{}.{}{}'.format(major, minor, patch, suffix)
 
 if __name__ == '__main__':
     print(git_semver('HEAD', True, prefix='debian/'))
