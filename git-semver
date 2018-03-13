@@ -39,16 +39,20 @@ def git_semver_check_message(msg):
 
 def git_semver(commit, release, prefix=''):
     git_desc = subprocess.check_output(['git', 'describe', commit])
-    match = re.match('(debian/(\d+).(\d+).(\d+))(-(\d+-g[a-f0-9]+))?', git_desc)
-    last_tag, major, minor, patch, _, short_commit = match.groups()
+    match = re.match('(debian/(\d+).(\d+).(\d+))(-\d+-g[a-f0-9]+)?', git_desc)
+    last_tag, major, minor, patch, short_commit = match.groups()
     log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
 
     version_bump = 0
-    for msg in subprocess.check_output(log_cmd).splitlines():
-        try:
-            version_bump = max(version_bump, git_semver_check_message(msg))
-        except Exception as e:
-            logging.warn(e.message + ': skipped invalid commit')
+    msgs = subprocess.check_output(log_cmd).splitlines()
+    if not msgs:
+        release = True
+    else:
+        for msg in subprocess.check_output(log_cmd).splitlines():
+            try:
+                version_bump = max(version_bump, git_semver_check_message(msg))
+            except Exception as e:
+                logging.warn(e.message + ': skipped invalid commit')
 
     if version_bump == COMMIT_TYPE_PATCH:
         patch = int(patch) + 1
@@ -65,12 +69,12 @@ def git_semver(commit, release, prefix=''):
     if release:
         suffix = ''
     elif version_bump:
-        suffix = '-~pre_' + short_commit.replace('-','_')
+        suffix = '~pre' + short_commit.replace('-','+')
     else:
-        suffix = '-' + short_commit.replace('-','_')
+        suffix = short_commit.replace('-','+')
 
     return '{}.{}.{}{}'.format(major, minor, patch, suffix)
 
 if __name__ == '__main__':
-    print(git_semver('HEAD', True, prefix='debian/'))
+    print(git_semver('HEAD', False, prefix='debian/'))
 
