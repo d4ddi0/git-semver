@@ -34,13 +34,33 @@ def git_semver_check_message(msg):
     elif commit_type in COMMIT_NAMES_IGNORE:
         return COMMIT_TYPE_IGNORE
     else:
-        print msg, match.group(1)
         raise Exception('invalid commit type: ' + commit_type)
 
+def git_semver_get_last_version(commit, prefix='', suffix=''):
+    try:
+        git_desc = subprocess.check_output(['git', 'describe', commit])
+        template = r'({}(\d+).(\d+).(\d+){})(-\d+-g[a-f0-9]+)?'
+        ver_regex = template.format(prefix, suffix)
+        match = re.match(ver_regex, git_desc)
+        last_tag, major, minor, patch, short_commit = match.groups()
+    except subprocess.CalledProcessError:
+        #git describe returned nothing. We are pre initial release
+        cmd = ['git', 'rev-list', '--max-parents=0', commit]
+        last_tag = subprocess.check_output(cmd).strip()
+        major = 0
+        minor = 0
+        patch = 0
+        cmd2 = ['git', 'rev-parse', '--short', commit]
+        short_commit = subprocess.check_output(cmd2).strip()
+        cmd3 = ['git', 'rev-list', '--count', last_tag + '..' + commit]
+        post_commit_revs = subprocess.check_output(cmd3).strip()
+        short_commit = '-{}-g{}'.format(post_commit_revs, short_commit)
+
+    return last_tag, major, minor, patch, short_commit
+
 def git_semver(commit, release, prefix=''):
-    git_desc = subprocess.check_output(['git', 'describe', commit])
-    match = re.match('(debian/(\d+).(\d+).(\d+))(-\d+-g[a-f0-9]+)?', git_desc)
-    last_tag, major, minor, patch, short_commit = match.groups()
+    last_tag, major, minor, patch, short_commit = \
+            git_semver_get_last_version(commit, prefix)
     log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
 
     version_bump = 0
