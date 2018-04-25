@@ -59,17 +59,11 @@ def git_semver_get_last_version(commit, prefix=None, suffix=''):
         post_commit_revs = subprocess.check_output(cmd3).strip()
         short_commit = '-{}-g{}'.format(post_commit_revs, short_commit)
 
-    return last_tag, major, minor, patch, short_commit
+    return last_tag, (major, minor, patch), short_commit
 
-def git_semver(commit=None, release=False, prefix=None):
-    if commit is None:
-        commit = 'HEAD'
-
-    last_tag, major, minor, patch, short_commit = \
-            git_semver_get_last_version(commit, prefix)
-    log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
-
+def git_semver_get_version_bump(last_tag, commit):
     version_bump = 0
+    log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
     msgs = subprocess.check_output(log_cmd).splitlines()
     if not msgs:
         release = True
@@ -80,6 +74,11 @@ def git_semver(commit=None, release=False, prefix=None):
             except Exception as e:
                 logging.warn(e.message + ': skipped invalid commit')
 
+    return version_bump
+
+
+def git_semver_get_next_version(ver, version_bump):
+    major, minor, patch = ver
     if version_bump == COMMIT_TYPE_PATCH:
         patch = int(patch) + 1
     elif version_bump == COMMIT_TYPE_MINOR:
@@ -91,6 +90,17 @@ def git_semver(commit=None, release=False, prefix=None):
         major = int(major) + 1
     else: # COMMIT_TYPE_IGNORE
         pass
+
+    return major, minor, patch
+
+
+def git_semver(commit=None, release=False, prefix=None):
+    if commit is None:
+        commit = 'HEAD'
+
+    last_tag, ver, short_commit = git_semver_get_last_version(commit, prefix)
+    version_bump = git_semver_get_version_bump(last_tag, commit)
+    major, minor, patch = git_semver_get_next_version(ver, version_bump)
 
     if release:
         suffix = ''
