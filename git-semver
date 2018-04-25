@@ -44,19 +44,19 @@ def git_semver_get_last_version(commit, prefix=None, suffix=''):
         git_desc = subprocess.check_output(['git', 'describe', commit])
         template = r'({}(\d+)\.(\d+)\.(\d+){})(-\d+-g[a-f0-9]+)?$'
         ver_regex = template.format(prefix, suffix)
-        match = re.match(ver_regex, git_desc)
+        match = re.match(ver_regex, git_desc.decode('utf-8'))
         last_tag, major, minor, patch, short_commit = match.groups()
     except subprocess.CalledProcessError:
         #git describe returned nothing. We are pre initial release
         cmd = ['git', 'rev-list', '--max-parents=0', commit]
-        last_tag = subprocess.check_output(cmd).strip()
+        last_tag = subprocess.check_output(cmd).decode('utf-8').strip()
         major = 0
         minor = 0
         patch = 0
         cmd2 = ['git', 'rev-parse', '--short', commit]
-        short_commit = subprocess.check_output(cmd2).strip()
+        short_commit = subprocess.check_output(cmd2).decode('utf-8').strip()
         cmd3 = ['git', 'rev-list', '--count', last_tag + '..' + commit]
-        post_commit_revs = subprocess.check_output(cmd3).strip()
+        post_commit_revs = subprocess.check_output(cmd3).decode('utf-8').strip()
         short_commit = '-{}-g{}'.format(post_commit_revs, short_commit)
 
     return last_tag, (major, minor, patch), short_commit
@@ -64,15 +64,15 @@ def git_semver_get_last_version(commit, prefix=None, suffix=''):
 def git_semver_get_version_bump(last_tag, commit):
     version_bump = 0
     log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
-    msgs = subprocess.check_output(log_cmd).splitlines()
+    msgs = subprocess.check_output(log_cmd).decode('utf-8').splitlines()
     if not msgs:
         release = True
     else:
-        for msg in subprocess.check_output(log_cmd).splitlines():
+        for msg in subprocess.check_output(log_cmd).decode('utf-8').splitlines():
             try:
                 version_bump = max(version_bump, git_semver_check_message(msg))
             except Exception as e:
-                logging.warn(e.message + ': skipped invalid commit')
+                logging.warn(str(e) + ': skipped invalid commit')
 
     return version_bump
 
