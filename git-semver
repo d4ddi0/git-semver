@@ -94,7 +94,7 @@ def git_semver_get_next_version(ver, version_bump):
     return major, minor, patch
 
 
-def git_semver(commit=None, release=False, prefix=None):
+def git_semver(commit=None, release=False, prefix=None, format=None):
     if commit is None:
         commit = 'HEAD'
 
@@ -114,6 +114,7 @@ def git_semver(commit=None, release=False, prefix=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-r', '--release', action='store_true', help='output the next release version without any prerelease suffix')
+    parser.add_argument('-f', '--format', type=str, default='semver', help='format the output for a packaging system.')
     parser.add_argument('-c', '--commit', type=str, help='select a specific commit. defaults to the current HEAD')
 
     print(git_semver(**vars(parser.parse_args())))
