@@ -65,14 +65,11 @@ def git_semver_get_version_bump(last_tag, commit):
     version_bump = 0
     log_cmd = ['git', 'log', '--format=%s', last_tag + '..' + commit]
     msgs = subprocess.check_output(log_cmd).decode('utf-8').splitlines()
-    if not msgs:
-        release = True
-    else:
-        for msg in subprocess.check_output(log_cmd).decode('utf-8').splitlines():
-            try:
-                version_bump = max(version_bump, git_semver_check_message(msg))
-            except Exception as e:
-                logging.warn(str(e) + ': skipped invalid commit')
+    for msg in subprocess.check_output(log_cmd).decode('utf-8').splitlines():
+        try:
+            version_bump = max(version_bump, git_semver_check_message(msg))
+        except Exception as e:
+            logging.warn(str(e) + ': skipped invalid commit')
 
     return version_bump
 
@@ -102,7 +99,7 @@ def git_semver(commit=None, release=False, prefix=None, format=None):
     version_bump = git_semver_get_version_bump(last_tag, commit)
     major, minor, patch = git_semver_get_next_version(ver, version_bump)
 
-    if release:
+    if release or not short_commit:
         suffix = ''
     elif version_bump:
         suffix = '~pre' + short_commit.replace('-','+')
