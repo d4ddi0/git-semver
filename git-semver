@@ -98,7 +98,8 @@ def git_semver_get_next_version(ver, version_bump):
     return major, minor, patch
 
 
-def git_semver(commit=None, release=False, prefix=None, format=None, verbose=0,):
+def git_semver(commit=None, release=False, prefix=None, format=None,
+               verbose=0,):
     if commit is None:
         commit = 'HEAD'
 
@@ -107,18 +108,22 @@ def git_semver(commit=None, release=False, prefix=None, format=None, verbose=0,)
     major, minor, patch = git_semver_get_next_version(ver, version_bump)
 
     if version_bump and not release:
-        suffix = '~pre' + short_commit.replace('-','+')
+        suffix = '~pre' + short_commit.replace('-', '+')
     else:
         suffix = ''
 
     return '{}.{}.{}{}'.format(major, minor, patch, suffix)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-r', '--release', action='store_true', help='output the next release version without any prerelease suffix')
-    parser.add_argument('-f', '--format', type=str, default='semver', help='format the output for a packaging system.')
-    parser.add_argument('-c', '--commit', type=str, help='select a specific commit. defaults to the current HEAD')
-    parser.add_argument('-v', '--verbose', type=int, default=0, help='produce more verbose debugging output')
+    relhelp = 'output the next release version without any prerelease suffix'
+    parser.add_argument('-r', '--release', action='store_true', help=relhelp)
+    parser.add_argument('-f', '--format', type=str, default='semver',
+                        help='format the output for a packaging system.')
+    commithelp = 'select a specific commit. defaults to the current HEAD'
+    parser.add_argument('-c', '--commit', type=str, help=commithelp)
+    parser.add_argument('-v', '--verbose', type=int, default=0,
+                        help='produce more verbose debugging output')
 
     print(git_semver(**vars(parser.parse_args())))
-
