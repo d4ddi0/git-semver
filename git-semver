@@ -53,7 +53,7 @@ def git_semver_get_last_version(commit, prefix=None, suffix=''):
     except subprocess.CalledProcessError:
         #git describe returned nothing. We are pre initial release
         cmd = ['git', 'rev-list', '--max-parents=0', commit]
-        last_tag = subprocess.check_output(cmd).decode('utf-8').strip()
+        last_tag = subprocess.check_output(cmd).decode().splitlines()[0].strip()
         major = 0
         minor = 0
         patch = 0
