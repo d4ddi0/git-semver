@@ -8,8 +8,11 @@ the rules of Semantic Versioning (see https://semver.org/)
 
 import argparse
 import logging
+import os
 import re
 import subprocess
+
+DEVNULL = open(os.devnull, 'w')
 
 COMMIT_TYPE_IGNORE = 0
 COMMIT_TYPE_PATCH = 1
@@ -41,7 +44,8 @@ def git_semver_get_last_version(commit, prefix=None, suffix=''):
     if prefix is None:
         prefix = '\D*'
     try:
-        git_desc = subprocess.check_output(['git', 'describe', commit])
+        git_desc = subprocess.check_output(['git', 'describe', commit],
+                                           stderr=DEVNULL)
         template = r'({}(\d+)\.(\d+)\.(\d+){})(-\d+-g[a-f0-9]+)?$'
         ver_regex = template.format(prefix, suffix)
         match = re.match(ver_regex, git_desc.decode('utf-8'))
