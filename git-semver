@@ -28,7 +28,7 @@ VERBOSE = 0
 
 
 def git_semver_check_message(msg):
-    match = re.match('([a-z]+)(\([a-z]+\))?: ', msg)
+    match = re.match(r'([a-z]+)(\([a-z]+\))?: ', msg)
     if match is None:
         raise Exception('invalid commit header format: "' + msg + '"')
     commit_type = match.group(1)
@@ -43,9 +43,10 @@ def git_semver_check_message(msg):
     else:
         raise Exception('invalid commit type: ' + commit_type)
 
+
 def git_semver_get_last_version(commit, prefix=None, suffix=''):
     if prefix is None:
-        prefix = '\D*'
+        prefix = r'\D*'
     try:
         git_desc = subprocess.check_output(['git', 'describe', commit],
                                            stderr=DEVNULL)
@@ -54,7 +55,7 @@ def git_semver_get_last_version(commit, prefix=None, suffix=''):
         match = re.match(ver_regex, git_desc.decode('utf-8'))
         last_tag, major, minor, patch, short_commit = match.groups()
     except subprocess.CalledProcessError:
-        #git describe returned nothing. We are pre initial release
+        # git describe returned nothing. We are pre initial release
         cmd = ['git', 'rev-list', '--max-parents=0', commit]
         last_tag = subprocess.check_output(cmd).decode().splitlines()[0].strip()
         major = 0
@@ -67,6 +68,7 @@ def git_semver_get_last_version(commit, prefix=None, suffix=''):
         short_commit = '-{}-g{}'.format(post_commit_revs, short_commit)
 
     return last_tag, (major, minor, patch), short_commit
+
 
 def git_semver_get_version_bump(last_tag, commit):
     version_bump = 0
@@ -92,7 +94,7 @@ def git_semver_get_next_version(ver, version_bump):
         patch = 0
         minor = 0
         major = int(major) + 1
-    else: # COMMIT_TYPE_IGNORE
+    else:  # COMMIT_TYPE_IGNORE
         pass
 
     return major, minor, patch
